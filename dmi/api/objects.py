@@ -20,8 +20,12 @@ months = {
 
 class Country:
     def __init__(self, name: str):
-        self.name = name
+        self.__name = name
         self.__areas = []
+
+    @property
+    def name(self):
+        return self.__name
 
     @property
     def fine_name(self):
@@ -42,9 +46,16 @@ COUNTRIES = [Country('danmark'),
 
 class Area:
     def __init__(self, name: str, country: Country):
-        self.name = name
-        self.country = country
+        self.__name = name
+        self.__country = country
 
+    @property
+    def name(self):
+        return self.__name
+    
+    @property
+    def country(self):
+        return self.__country
 
 class DataType(Enum):
     PRECIPITATION = "precip",
