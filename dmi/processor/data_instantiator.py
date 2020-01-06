@@ -81,6 +81,25 @@ class DataBatch:
         return pandas.concat([series.to_pandas_series() for series in self.data_series], axis=1)
 
 
+class DataBulk:
+    def __init__(self, data_batches: list, area: objects.Area, datatype: objects.DataType):
+        self.__data_batches = data_batches
+        self.__area = area
+        self.__datatype = datatype
+
+    @property
+    def data_batches(self):
+        return self.__data_batches
+
+    @property
+    def area(self):
+        return self.__area
+
+    @property
+    def datatype(self):
+        return self.__datatype
+
+
 def __convert(data: str):
     converted_data = json.loads(data)
     if not isinstance(converted_data, list):
@@ -91,3 +110,10 @@ def __convert(data: str):
 def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType):
     converted_data = __convert(data)
     return DataBatch(converted_data, area, datatype)
+
+
+def instantiate_bulk_data(data_list: list, area: objects.Area, datatype: objects.DataType):
+    data_batches = []
+    for data in data_list:
+        data_batches.append(instantiate_data(data, area, datatype))
+    return DataBulk(data_batches, area, datatype)
