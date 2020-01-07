@@ -18,6 +18,13 @@ months = {
 }
 
 
+class Interval(Enum):
+    HOURLY = 'hourly'
+    DAILY = 'daily'
+    MONTHLY = 'monthly'
+    YEARLY = 'yearly'
+
+
 class Country:
     def __init__(self, name: str):
         self.__name = name
@@ -39,10 +46,14 @@ class Country:
         self.__areas.append(area)
 
 
-COUNTRIES = [Country('danmark'),
-             Country('grønland'),
-             Country('færøerne')]
+class Countries(Enum):
+    DENMARK = Country('danmark')
+    GREENLAND = Country('grønland')
+    FAROE_ISLANDS = Country('færøerne')
 
+    @staticmethod
+    def list_items():
+        return [item.value for item in list(Countries)]
 
 class Area:
     def __init__(self, name: str, country: Country):
@@ -52,22 +63,23 @@ class Area:
     @property
     def name(self):
         return self.__name
-    
+
     @property
     def country(self):
         return self.__country
 
+
 class DataType(Enum):
-    PRECIPITATION = "precip",
-    PRESSURE = "pressure",
-    HUMIDITY = "humidity",
-    SUN_HOURS = "sunhours",
-    DROUGHT = "drought",
-    LIGHTNING = "lightning",
-    SNOW = "snow",
-    TEMPERATURE = "temperature",
-    WIND = "wind",
-    WIND_DIRECTION = "winddir",
+    PRECIPITATION = "precip"
+    PRESSURE = "pressure"
+    HUMIDITY = "humidity"
+    SUN_HOURS = "sunhours"
+    DROUGHT = "drought"
+    LIGHTNING = "lightning"
+    SNOW = "snow"
+    TEMPERATURE = "temperature"
+    WIND = "wind"
+    WIND_DIRECTION = "winddir"
 
 
 def __load_areas_json(filename: str):
@@ -76,10 +88,13 @@ def __load_areas_json(filename: str):
 
 
 def __insert_all_areas():
-    for country in COUNTRIES:
-        area_names = __load_areas_json(f'dmi/{country.name}.json')
-        for area_name in area_names:
-            area = Area(area_name, country)
-            country.add_area(area)
+    for country in Countries.list_items():
+        if len(country.areas) == 0:
+            area_names = __load_areas_json(
+                f'dmi/fetching/data/{country.name}.json')
+            for area_name in area_names:
+                area = Area(area_name, country)
+                country.add_area(area)
 
-__insert_all_areas
+
+__insert_all_areas()

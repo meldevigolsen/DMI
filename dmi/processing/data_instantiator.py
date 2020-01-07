@@ -1,7 +1,7 @@
 import json
 import datetime
 import pandas
-from dmi.api import objects
+from dmi.fetching import objects
 
 
 class DataPoint:
@@ -81,7 +81,7 @@ class DataBatch:
         return pandas.concat([series.to_pandas_series() for series in self.data_series], axis=1)
 
 
-class DataBulk:
+class DataTimespan:
     def __init__(self, data_batches: list, area: objects.Area, datatype: objects.DataType):
         self.__data_batches = data_batches
         self.__area = area
@@ -112,8 +112,8 @@ def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType):
     return DataBatch(converted_data, area, datatype)
 
 
-def instantiate_bulk_data(data_list: list, area: objects.Area, datatype: objects.DataType):
+def instantiate_data_timespan(data_list: list, area: objects.Area, datatype: objects.DataType):
     data_batches = []
     for data in data_list:
         data_batches.append(instantiate_data(data, area, datatype))
-    return DataBulk(data_batches, area, datatype)
+    return DataTimespan(data_batches, area, datatype)

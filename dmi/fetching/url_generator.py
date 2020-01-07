@@ -1,4 +1,4 @@
-import objects
+from dmi.fetching import objects
 
 
 def __generate_base_url(interval_value: str, country_value: str, datatype_value: str, area_value):
