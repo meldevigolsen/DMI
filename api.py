@@ -32,7 +32,6 @@ def get_data_timespan(area: objects.Area, datatype: objects.DataType, interval: 
     data_list = []
     for date in dates:
         data_list.append(get_data_batch(area, datatype, interval, date))
-    data_timespan = data_instantiator.instantiate_data_timespan(
-        data_list, area, datatype)
+    data_timespan = data_instantiator.combine_data_batches(data_list)
     return data_timespan
 

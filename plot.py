@@ -21,3 +21,4 @@ def plot_data_batch(data_batch: data_instantiator.DataBatch):
     fig, ax = pyplot.subplots()
     __plot_data_batch(data_batch, ax)
     pyplot.show()
+

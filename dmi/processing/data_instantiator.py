@@ -1,8 +1,8 @@
+from __future__ import annotations
 import json
 import datetime
 import pandas
 from dmi.fetching import objects
-
 
 class DataPoint:
     def __init__(self, value: float, timestamp: int):
@@ -55,6 +55,10 @@ class DataSeries:
         series = pandas.Series(self.values, index)
         return series
 
+    def concat(self, data_series: DataSeries):
+        # TODO Check if other dataseries match with parameter and unit to prevent mixing of data
+        self.__datapoints = self.__datapoints + data_series.datapoints
+
 
 class DataBatch:
     def __init__(self, data, area: objects.Area, datatype: objects.DataType):
@@ -80,24 +84,10 @@ class DataBatch:
     def to_pandas_dataframe(self):
         return pandas.concat([series.to_pandas_series() for series in self.data_series], axis=1)
 
-
-class DataTimespan:
-    def __init__(self, data_batches: list, area: objects.Area, datatype: objects.DataType):
-        self.__data_batches = data_batches
-        self.__area = area
-        self.__datatype = datatype
-
-    @property
-    def data_batches(self):
-        return self.__data_batches
-
-    @property
-    def area(self):
-        return self.__area
-
-    @property
-    def datatype(self):
-        return self.__datatype
+    def concat(self, databatch: DataBatch):
+        # TODO Check if databatch matches criteria of this databatch
+        for i in range(len(self.data_series)):
+            self.data_series[i].concat(databatch.data_series[i])
 
 
 def __convert(data: str):
@@ -112,8 +102,8 @@ def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType):
     return DataBatch(converted_data, area, datatype)
 
 
-def instantiate_data_timespan(data_list: list, area: objects.Area, datatype: objects.DataType):
-    data_batches = []
-    for data in data_list:
-        data_batches.append(instantiate_data(data, area, datatype))
-    return DataTimespan(data_batches, area, datatype)
+def combine_data_batches(data_batches: list):
+    main_data_batch = data_batches[0]
+    for data_batch in data_batches[1:]:
+        main_data_batch.concat(data_batch)
+    return main_data_batch
