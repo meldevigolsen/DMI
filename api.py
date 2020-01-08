@@ -18,7 +18,7 @@ def get_yearly_data_batch(area: objects.Area, datatypes: objects.DataTypes, star
                           end_year: int) -> data_instantiator.DataBatch:
     datatype = datatypes.value
     data = downloader.get_yearly_data(area, datatype, start_year, end_year)
-    data_batch = data_instantiator.instantiate_data(data, area, datatype)
+    data_batch = data_instantiator.instantiate_data(data, area, datatype, objects.Intervals.YEARLY.value)
     return data_batch
 
 

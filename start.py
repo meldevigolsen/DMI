@@ -9,7 +9,7 @@ country = objects.Countries.DENMARK.value
 area = country.areas[1]
 
 start_date = datetime.datetime.strptime('1/1-2019', '%d/%m-%Y')
-# end_date = datetime.datetime.strptime('1/2-2019', '%d/%m-%Y')
+end_date = datetime.datetime.strptime('1/2-2019', '%d/%m-%Y')
 
 data_batch = api.get_data_batch(
     area, objects.DataTypes.TEMPERATURE, objects.Intervals.HOURLY, start_date)

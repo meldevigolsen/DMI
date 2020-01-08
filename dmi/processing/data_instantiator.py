@@ -27,7 +27,7 @@ class DMISeries:
         return self.__series
 
     def append(self, dmi_series: DMISeries):
-        self.series.append(dmi_series.series)
+        self.__series = self.__series.append(dmi_series.series)
 
 
 class DataSeries(DMISeries):

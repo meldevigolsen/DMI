@@ -10,9 +10,15 @@ def __parse_data(raw_data):
 
 
 def __get_data(url: str):
-    response = requests.get(url)
-    raw_data = response.content
-    return __parse_data(raw_data)
+    try:
+        response = requests.get(url)
+        raw_data = response.content
+        return __parse_data(raw_data)
+    except TimeoutError as te:
+        print(te.errno)
+    except Exception:
+        print('ded')
+        raise
 
 
 def get_data(area: objects.Area, datatype: objects.DataType, interval: objects.Interval, date: datetime.datetime):

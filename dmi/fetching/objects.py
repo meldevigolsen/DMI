@@ -127,7 +127,7 @@ def __insert_all_areas():
     for country in Countries.list_items():
         if len(country.areas) == 0:
             area_names = __load_areas_json(
-                f'dmi/fetching/data/{country.name}.json')
+                f'C:/Users/Martin/PycharmProjects/DMI/dmi/fetching/data/{country.name}.json')
             for area_name in area_names:
                 area = Area(area_name, country)
                 country.add_area(area)
