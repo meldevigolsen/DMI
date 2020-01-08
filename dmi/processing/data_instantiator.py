@@ -3,91 +3,92 @@ import json
 import datetime
 import pandas
 from dmi.fetching import objects
+from typing import List
 
-class DataPoint:
-    def __init__(self, value: float, timestamp: int):
-        self.__value = value
-        self.__datetime = datetime.datetime.fromtimestamp(
-            timestamp / float(1000))
 
-    @property
-    def value(self):
-        return self.__value
+class DMISeries:
+    def __init__(self, description: str, unit: str, series: pandas.Series):
+        self.__description = description
+        self.__unit = unit
+        self.__series = series
 
     @property
-    def datetime(self):
-        return self.__datetime
-
-
-class DataSeries:
-    def __init__(self, data):
-        self.__description = data['parameter']
-        self.__unit = data['unit']
-        self.__datapoints = []
-        for element in data['dataserie']:
-            raw_time = element['time']
-            value = element['value']
-            data_point = DataPoint(value, raw_time)
-            self.__datapoints.append(data_point)
-
-    @property
-    def desciption(self):
+    def description(self) -> str:
         return self.__description
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return self.__unit
 
     @property
-    def datapoints(self):
-        return self.__datapoints
+    def series(self) -> pandas.Series:
+        return self.__series
 
-    @property
-    def values(self):
-        return [datapoint.value for datapoint in self.datapoints]
-
-    @property
-    def datetimes(self):
-        return [datapoint.datetime for datapoint in self.datapoints]
-
-    def to_pandas_series(self):
-        index = pandas.DatetimeIndex(self.datetimes)
-        series = pandas.Series(self.values, index)
-        return series
-
-    def concat(self, data_series: DataSeries):
-        # TODO Check if other dataseries match with parameter and unit to prevent mixing of data
-        self.__datapoints = self.__datapoints + data_series.datapoints
+    def append(self, dmi_series: DMISeries):
+        self.series.append(dmi_series.series)
 
 
-class DataBatch:
-    def __init__(self, data, area: objects.Area, datatype: objects.DataType):
-        self.__data_series = []
+class DataSeries(DMISeries):
+    def __init__(self, data):
+        description = data['parameter']
+        unit = data['unit']
+        values = []
+        times = []
+        for element in data['dataserie']:
+            value = element['value']
+            values.append(value)
+            raw_time = element['time'] / 1000
+            times.append(raw_time)
+        index = pandas.to_datetime(times, unit='s')
+        series = pandas.Series(values, index)
+        super().__init__(description, unit, series)
+
+
+class PredictedSeries(DMISeries):
+    def __init__(self, original_dmi_series: DMISeries, series: pandas.Series):
+        super().__init__(original_dmi_series.description + ' (prediction)',
+                         original_dmi_series.unit, series)
+
+
+class Batch:
+    def __init__(self, dmi_series_list: List[DMISeries], area: objects.Area, datatype: objects.DataType):
+        self.__dmi_series_list = dmi_series_list
         self.__area = area
         self.__datatype = datatype
-        for element in data:
-            data_series = DataSeries(element)
-            self.__data_series.append(data_series)
 
     @property
-    def data_series(self):
-        return self.__data_series
+    def dmi_series_list(self) -> List[DMISeries]:
+        return self.__dmi_series_list
 
     @property
-    def area(self):
+    def area(self) -> objects.Area:
         return self.__area
 
     @property
-    def datatype(self):
+    def datatype(self) -> objects.DataType:
         return self.__datatype
 
-    def to_pandas_dataframe(self):
-        return pandas.concat([series.to_pandas_series() for series in self.data_series], axis=1)
+    def to_dataframe(self):
+        series_list = [x.series for x in self.__dmi_series_list]
+        return pandas.concat(series_list, axis=1)
 
-    def concat(self, databatch: DataBatch):
-        # TODO Check if databatch matches criteria of this databatch
-        for i in range(len(self.data_series)):
-            self.data_series[i].concat(databatch.data_series[i])
+
+class DataBatch(Batch):
+    def __init__(self, data, area: objects.Area, datatype: objects.DataType, is_prediction=False):
+        series_list = []
+        for element in data:
+            data_series = DataSeries(element)
+            series_list.append(data_series)
+        super().__init__(series_list, area, datatype)
+
+    def append(self, data_batch: DataBatch):
+        for i in range(len(self.dmi_series_list)):
+            self.dmi_series_list[i].append(data_batch.dmi_series_list[i])
+
+
+class PredictedBatch(Batch):
+    def __init__(self, original_data_batch: DataBatch, predicted_series: List[PredictedSeries]):
+        super().__init__(predicted_series, original_data_batch.area, original_data_batch.datatype)
 
 
 def __convert(data: str):
@@ -100,10 +101,3 @@ def __convert(data: str):
 def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType):
     converted_data = __convert(data)
     return DataBatch(converted_data, area, datatype)
-
-
-def combine_data_batches(data_batches: list):
-    main_data_batch = data_batches[0]
-    for data_batch in data_batches[1:]:
-        main_data_batch.concat(data_batch)
-    return main_data_batch
