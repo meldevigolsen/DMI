@@ -1,6 +1,7 @@
 from __future__ import annotations
-from enum import Enum
+
 import json
+from enum import Enum
 
 months = {
     1: 'Januar',
@@ -18,11 +19,25 @@ months = {
 }
 
 
-class Interval(Enum):
-    HOURLY = 'hourly'
-    DAILY = 'daily'
-    MONTHLY = 'monthly'
-    YEARLY = 'yearly'
+class Interval:
+    def __init__(self, url_name: str, danish_name: str):
+        self.__url_name = url_name
+        self.__danish_name = danish_name
+
+    @property
+    def url_name(self):
+        return self.__url_name
+
+    @property
+    def danish_name(self):
+        return self.__danish_name
+
+
+class Intervals(Enum):
+    HOURLY = Interval('hourly', 'Timer')
+    DAILY = Interval('daily', 'Dage')
+    MONTHLY = Interval('monthly', 'Måneder')
+    YEARLY = Interval('yearly', 'År')
 
 
 class Country:
@@ -51,9 +66,11 @@ class Countries(Enum):
     GREENLAND = Country('grønland')
     FAROE_ISLANDS = Country('færøerne')
 
+    # noinspection PyTypeChecker
     @staticmethod
     def list_items():
         return [item.value for item in list(Countries)]
+
 
 class Area:
     def __init__(self, name: str, country: Country):
@@ -69,17 +86,36 @@ class Area:
         return self.__country
 
 
-class DataType(Enum):
-    PRECIPITATION = "precip"
-    PRESSURE = "pressure"
-    HUMIDITY = "humidity"
-    SUN_HOURS = "sunhours"
-    DROUGHT = "drought"
-    LIGHTNING = "lightning"
-    SNOW = "snow"
-    TEMPERATURE = "temperature"
-    WIND = "wind"
-    WIND_DIRECTION = "winddir"
+class DataType:
+    def __init__(self, url_name: str, full_name: str, danish_name: str):
+        self.__url_name = url_name
+        self.__full_name = full_name
+        self.__danish_name = danish_name
+
+    @property
+    def url_name(self):
+        return self.__url_name
+
+    @property
+    def full_name(self):
+        return self.__full_name
+
+    @property
+    def danish_name(self):
+        return self.__danish_name
+
+
+class DataTypes(Enum):
+    PRECIPITATION = DataType("precip", 'Precipitation', 'Nedbør')
+    PRESSURE = DataType("pressure", 'Pressure', 'Lufttryk')
+    HUMIDITY = DataType("humidity", 'Humidity', 'Luftfugtighed')
+    SUN_HOURS = DataType("sunhours", 'Sun hours', 'Soltimer')
+    DROUGHT = DataType("drought", 'Drought', 'Tørke')
+    LIGHTNING = DataType("lightning", 'Lightning', 'Lynnedslag')
+    SNOW = DataType("snow", 'Snow', 'Sne')
+    TEMPERATURE = DataType("temperature", 'Temperature', 'Temperatur')
+    WIND = DataType("wind", 'Wind', 'Vind')
+    WIND_DIRECTION = DataType("winddir", 'Wind direction', 'Vindretning')
 
 
 def __load_areas_json(filename: str):

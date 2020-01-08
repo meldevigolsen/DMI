@@ -1,5 +1,3 @@
-
-
 class A:
     def __init__(self):
         self.__a = 1

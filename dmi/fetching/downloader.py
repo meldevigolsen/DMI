@@ -1,6 +1,8 @@
-from dmi.fetching import objects, url_generator
-import requests
 import datetime
+
+import requests
+
+from dmi.fetching import objects, url_generator
 
 
 def __parse_data(raw_data):
@@ -14,13 +16,14 @@ def __get_data(url: str):
 
 
 def get_data(area: objects.Area, datatype: objects.DataType, interval: objects.Interval, date: datetime.datetime):
-    if interval == objects.Interval.HOURLY:
+    url = ''
+    if interval == objects.Intervals.HOURLY.value:
         url = url_generator.generate_hourly_url(
             area, datatype, date.year, date.month, date.day)
-    elif interval == objects.Interval.DAILY:
+    elif interval == objects.Intervals.DAILY.value:
         url = url_generator.generate_daily_url(
             area, datatype, date.year, date.month)
-    elif interval == objects.Interval.MONTHLY:
+    elif interval == objects.Intervals.MONTHLY.value:
         url = url_generator.generate_monthly_url(area, datatype, date.year)
     return __get_data(url)
 

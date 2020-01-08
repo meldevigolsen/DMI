@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import json
-import datetime
-import pandas
-from dmi.fetching import objects
 from typing import List
+
+import pandas
+
+from dmi.fetching import objects
 
 
 class DMISeries:
@@ -51,10 +53,12 @@ class PredictedSeries(DMISeries):
 
 
 class Batch:
-    def __init__(self, dmi_series_list: List[DMISeries], area: objects.Area, datatype: objects.DataType):
+    def __init__(self, dmi_series_list: List[DMISeries], area: objects.Area, datatype: objects.DataType,
+                 interval: objects.Interval):
         self.__dmi_series_list = dmi_series_list
         self.__area = area
         self.__datatype = datatype
+        self.__interval = interval
 
     @property
     def dmi_series_list(self) -> List[DMISeries]:
@@ -68,18 +72,22 @@ class Batch:
     def datatype(self) -> objects.DataType:
         return self.__datatype
 
+    @property
+    def interval(self):
+        return self.__interval
+
     def to_dataframe(self):
         series_list = [x.series for x in self.__dmi_series_list]
         return pandas.concat(series_list, axis=1)
 
 
 class DataBatch(Batch):
-    def __init__(self, data, area: objects.Area, datatype: objects.DataType, is_prediction=False):
+    def __init__(self, data, area: objects.Area, datatype: objects.DataType, interval: objects.Interval):
         series_list = []
         for element in data:
             data_series = DataSeries(element)
             series_list.append(data_series)
-        super().__init__(series_list, area, datatype)
+        super().__init__(series_list, area, datatype, interval)
 
     def append(self, data_batch: DataBatch):
         for i in range(len(self.dmi_series_list)):
@@ -87,8 +95,9 @@ class DataBatch(Batch):
 
 
 class PredictedBatch(Batch):
-    def __init__(self, original_data_batch: DataBatch, predicted_series: List[PredictedSeries]):
-        super().__init__(predicted_series, original_data_batch.area, original_data_batch.datatype)
+    def __init__(self, original_data_batch: Batch, predicted_series: List[PredictedSeries]):
+        super().__init__(predicted_series, original_data_batch.area, original_data_batch.datatype,
+                         original_data_batch.interval)
 
 
 def __convert(data: str):
@@ -98,6 +107,6 @@ def __convert(data: str):
     return converted_data
 
 
-def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType):
+def instantiate_data(data: str, area: objects.Area, datatype: objects.DataType, interval: objects.Interval):
     converted_data = __convert(data)
-    return DataBatch(converted_data, area, datatype)
+    return DataBatch(converted_data, area, datatype, interval)
