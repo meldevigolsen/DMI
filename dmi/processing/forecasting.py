@@ -2,6 +2,8 @@ import numpy
 import pandas
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
+from statsmodels.tsa.arima_model import ARIMA, ARIMAResults
+from statsmodels.tsa.stattools import acf, pacf, adfuller
 
 from dmi.processing import data_instantiator
 
@@ -23,7 +25,7 @@ def __prediction_converter(dmi_series: data_instantiator.DMISeries, linreg: Line
     if steps > 0:
         index = __extend_date_index(index, steps)
     prediction = pandas.Series(prediction_values, index)
-    prediction_series = data_instantiator.PredictedSeries(dmi_series, prediction)
+    prediction_series = data_instantiator.PredictedSeries(dmi_series, prediction, steps)
     return prediction_series
 
 
@@ -42,7 +44,7 @@ def linear_regression(batch: data_instantiator.Batch, steps=0) -> data_instantia
     for dmi_series in batch.dmi_series_list:
         predicted_series_list.append(__linear_regression(dmi_series, steps))
     predicted_batch = data_instantiator.PredictedBatch(
-        batch, predicted_series_list)
+        batch, predicted_series_list, steps)
     return predicted_batch
 
 
@@ -61,5 +63,65 @@ def polynomial_linear_regression(batch: data_instantiator.Batch, degree: int, st
     predict_series_list = []
     for dmi_series in batch.dmi_series_list:
         predict_series_list.append(__polynomial_linear_regression(dmi_series, poly_feat, steps))
-    predicted_batch = data_instantiator.PredictedBatch(batch, predict_series_list)
+    predicted_batch = data_instantiator.PredictedBatch(batch, predict_series_list, steps)
+    return predicted_batch
+
+
+def __find_best_differencing_order(series: pandas.Series):
+    diff_series = series
+    diff_order = 0
+    for i in range(3):
+        # noinspection PyTypeChecker
+        adf: tuple = adfuller(diff_series)
+        if adf[1] < .5:
+            diff_order = i
+            break
+        else:
+            diff_series = diff_series.diff()
+            diff_order += 1
+    return diff_order
+
+
+def __find_best_ar_order(series: pandas.Series, diff_order):
+    model = ARIMA(series, (0, diff_order, 0))
+    model_fit: ARIMAResults = model.fit(disp=0)
+    pacf_res, confidence_level = pacf(model_fit.resid, alpha=.05)
+    spike_counter = 0
+    for i in range(1, 5):
+        if pacf_res[i] > confidence_level[i][1]:
+            spike_counter += 1
+    return spike_counter
+
+
+def __find_best_ma_order(series: pandas.Series, diff_order):
+    model = ARIMA(series.values, (0, diff_order, 0))
+    model_fit: ARIMAResults = model.fit(disp=0)
+    acf_res, confidence_level = acf(model_fit.resid, alpha=.05)
+    spike_counter = 0
+    for i in range(1, 5):
+        if acf_res[i] < confidence_level[i][0]:
+            spike_counter += 1
+    return spike_counter
+
+
+def __arima_prediction(dmi_series: data_instantiator.DMISeries, steps):
+    series = dmi_series.series
+    diff_order = __find_best_differencing_order(series)
+    ar_order = __find_best_ar_order(series, diff_order)
+    ma_order = __find_best_ma_order(series, diff_order)
+    model = ARIMA(series, (ar_order, diff_order, ma_order))
+    model_fit: ARIMAResults = model.fit(disp=0)
+    prediction_end = series.index[-1]
+    if steps > 0:
+        prediction_end = prediction_end + pandas.to_timedelta(steps, unit=series.index.inferred_freq)
+    result = model_fit.predict(start=series.index[diff_order], end=prediction_end)
+    predicted_series = data_instantiator.PredictedSeries(dmi_series, result, steps)
+    return predicted_series
+
+
+def arima_prediction(batch: data_instantiator.Batch, steps=0):
+    predicted_series_list = []
+    for dmi_series in batch.dmi_series_list:
+        predicted_series_list.append(__arima_prediction(dmi_series, steps))
+    predicted_batch = data_instantiator.PredictedBatch(batch, predicted_series_list, steps)
     return predicted_batch

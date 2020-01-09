@@ -41,15 +41,20 @@ class DataSeries(DMISeries):
             values.append(value)
             raw_time = element['time'] / 1000
             times.append(raw_time)
-        index = pandas.to_datetime(times, unit='s')
+        index = pandas.to_datetime(times, unit='s', infer_datetime_format=True)
         series = pandas.Series(values, index)
         super().__init__(description, unit, series)
 
 
 class PredictedSeries(DMISeries):
-    def __init__(self, original_dmi_series: DMISeries, series: pandas.Series):
+    def __init__(self, original_dmi_series: DMISeries, series: pandas.Series, prediction_steps: int):
         super().__init__(original_dmi_series.description + ' (prediction)',
                          original_dmi_series.unit, series)
+        self.__prediction_steps = prediction_steps
+
+    @property
+    def prediction_steps(self):
+        return self.__prediction_steps
 
 
 class Batch:
@@ -95,9 +100,14 @@ class DataBatch(Batch):
 
 
 class PredictedBatch(Batch):
-    def __init__(self, original_data_batch: Batch, predicted_series: List[PredictedSeries]):
+    def __init__(self, original_data_batch: Batch, predicted_series: List[PredictedSeries], prediction_steps: int):
         super().__init__(predicted_series, original_data_batch.area, original_data_batch.datatype,
                          original_data_batch.interval)
+        self.__prediction_steps = prediction_steps
+
+    @property
+    def prediction_steps(self):
+        return self.__prediction_steps
 
 
 def __convert(data: str):

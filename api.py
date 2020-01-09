@@ -34,10 +34,8 @@ def get_data_timespan(area: objects.Area, datatype: objects.DataTypes, intervals
         # noinspection PyArgumentList
         dates = [start_date + datetime.timedelta(months=x) for x in range(delta + 1)]
     elif intervals == objects.Intervals.MONTHLY:
-        delta = (end_date - start_date).years
         # noinspection PyArgumentList
-        dates = [start_date +
-                 datetime.timedelta(years=x) for x in range(delta + 1)]
+        dates = [datetime.datetime(year, 1, 1) for year in range(start_date.year, end_date.year + 1)]
     first_batch: Optional[data_instantiator.DataBatch] = None
     for date in dates:
         data_batch = get_data_batch(area, datatype, intervals, date)

@@ -9,7 +9,7 @@ country = objects.Countries.DENMARK.value
 area = country.areas[1]
 
 start_date = datetime.datetime.strptime('1/1-2019', '%d/%m-%Y')
-end_date = datetime.datetime.strptime('1/2-2019', '%d/%m-%Y')
+end_date = datetime.datetime.strptime('10/1-2019', '%d/%m-%Y')
 
 
 def plot_batch():
@@ -35,6 +35,13 @@ def plot_batch_poly_linreg():
     plot.plot_double(data_batch, prediction)
 
 
+def plot_batch_arima():
+    data_batch = api.get_data_timespan(area, objects.DataTypes.TEMPERATURE, objects.Intervals.HOURLY, start_date,
+                                       end_date)
+    prediction = forecasting.arima_prediction(data_batch, 10)
+    plot.plot_double(data_batch, prediction)
+
+
 def plot_timespan_batch():
     data_batch = api.get_data_timespan(area, objects.DataTypes.TEMPERATURE, objects.Intervals.HOURLY, start_date,
                                        end_date)
@@ -46,4 +53,4 @@ def plot_yearly_batch():
     plot.plot_batch(data_batch)
 
 
-plot_batch_linreg_steps()
+plot_batch_arima()

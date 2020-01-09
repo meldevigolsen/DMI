@@ -20,9 +20,10 @@ months = {
 
 
 class Interval:
-    def __init__(self, url_name: str, danish_name: str):
+    def __init__(self, url_name: str, danish_name: str, freq: str):
         self.__url_name = url_name
         self.__danish_name = danish_name
+        self.__freq = freq
 
     @property
     def url_name(self):
@@ -32,12 +33,16 @@ class Interval:
     def danish_name(self):
         return self.__danish_name
 
+    @property
+    def freq(self):
+        return self.__freq
+
 
 class Intervals(Enum):
-    HOURLY = Interval('hourly', 'Timer')
-    DAILY = Interval('daily', 'Dage')
-    MONTHLY = Interval('monthly', 'Måneder')
-    YEARLY = Interval('yearly', 'År')
+    HOURLY = Interval('hourly', 'Timer', 'H')
+    DAILY = Interval('daily', 'Dage', 'D')
+    MONTHLY = Interval('monthly', 'Måneder', 'MS')
+    YEARLY = Interval('yearly', 'År', 'AS')
 
 
 class Country:
