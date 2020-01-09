@@ -14,4 +14,4 @@ end_date = datetime.datetime.strptime('1/2-2019', '%d/%m-%Y')
 data_batch = api.get_data_batch(
     area, objects.DataTypes.TEMPERATURE, objects.Intervals.HOURLY, start_date)
 prediction = forecasting.linear_regression(data_batch, 10)
-plot.plot_double(data_batch, prediction)
+plot.plot_batch_with_prediction(data_batch, prediction)
