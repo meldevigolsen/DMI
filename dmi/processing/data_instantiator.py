@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import List, Union
+from abc import abstractmethod
+from typing import List
 
 import pandas
 
@@ -10,7 +11,7 @@ from dmi.fetching import objects
 
 
 class DMISeries(abc.ABC):
-    def __init__(self, description, unit):
+    def __init__(self, description: str, unit: str):
         self.__unit = unit
         self.__description = description
 
@@ -23,7 +24,7 @@ class DMISeries(abc.ABC):
         return self.__unit
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def series(self) -> pandas.Series:
         pass
 
@@ -47,62 +48,82 @@ class DataSeries(DMISeries):
     def series(self) -> pandas.Series:
         return self.__series
 
-    def append(self, dmi_series: DMISeries):
+    def append(self, dmi_series: DMISeries) -> None:
         self.__series = self.series.append(dmi_series.series)
 
 
-class LinearRegressionSeries(DMISeries):
-    def __init__(self, original_dmi_series: DMISeries, prediction_series: pandas.Series, prediction_steps: int,
+class PredictedSeries(DMISeries):
+    def __init__(self, description: str, unit: str):
+        super().__init__(description, unit)
+
+    @property
+    @abstractmethod
+    def forecast(self) -> pandas.Series:
+        pass
+
+    @property
+    @abstractmethod
+    def in_sample_prediction(self) -> pandas.Series:
+        pass
+
+    @property
+    @abstractmethod
+    def prediction_description(self) -> str:
+        pass
+
+
+class LinearRegressionSeries(PredictedSeries):
+    def __init__(self, original_dmi_series: DMISeries, full_predicted_series: pandas.Series, prediction_steps: int,
                  linear_regression_description: str):
         super().__init__(original_dmi_series.description, original_dmi_series.unit)
         self.__linear_regression_description = linear_regression_description
-        self.__prediction_series = prediction_series
+        self.__full_predicted_series = full_predicted_series
         self.__prediction_steps = prediction_steps
 
     @property
-    def forecast(self):
-        return self.prediction_series.iloc[len(self.prediction_series) - self.prediction_steps:]
+    def forecast(self) -> pandas.Series:
+        return self.full_predicted_series.iloc[len(self.full_predicted_series) - self.prediction_steps:]
 
     @property
-    def prediction_series(self):
-        return self.__prediction_series
+    def full_predicted_series(self) -> pandas.Series:
+        return self.__full_predicted_series
 
     @property
-    def in_sample_prediction(self):
-        return self.prediction_series.iloc[:-self.prediction_steps]
+    def in_sample_prediction(self) -> pandas.Series:
+        return self.full_predicted_series.iloc[:-self.prediction_steps]
 
     @property
     def series(self) -> pandas.Series:
         return self.in_sample_prediction
 
     @property
-    def prediction_steps(self):
+    def prediction_steps(self) -> int:
         return self.__prediction_steps
 
     @property
-    def linear_regression_description(self):
+    def prediction_description(self) -> str:
         return self.__linear_regression_description
 
 
-class ARIMASeries(DMISeries):
-    def __init__(self, original_dmi_series: DMISeries, in_sample_prediction, forecast, confidence_intervals,
-                 prediction_description):
-        super().__init__(original_dmi_series.description + f'\n({prediction_description})', original_dmi_series.unit)
-        self.__arima_description = prediction_description
+class ARIMASeries(PredictedSeries):
+    def __init__(self, original_dmi_series: DMISeries, in_sample_prediction: pandas.Series, forecast: pandas.Series,
+                 confidence_intervals: pandas.DataFrame, arima_description: str):
+        super().__init__(original_dmi_series.description + f'\n{arima_description}', original_dmi_series.unit)
+        self.__arima_description = arima_description
         self.__confidence_interval = confidence_intervals
         self.__forecast = forecast
         self.__in_sample_prediction = in_sample_prediction
 
     @property
-    def confidence_intervals(self):
+    def confidence_intervals(self) -> pandas.DataFrame:
         return self.__confidence_interval
 
     @property
-    def forecast(self):
+    def forecast(self) -> pandas.Series:
         return self.__forecast
 
     @property
-    def in_sample_prediction(self):
+    def in_sample_prediction(self) -> pandas.Series:
         return self.__in_sample_prediction
 
     @property
@@ -110,7 +131,7 @@ class ARIMASeries(DMISeries):
         return self.in_sample_prediction
 
     @property
-    def arima_description(self):
+    def prediction_description(self) -> str:
         return self.__arima_description
 
 
@@ -162,9 +183,14 @@ class DataBatch(Batch):
 
 
 class PredictedBatch(Batch):
-    def __init__(self, original_data_batch: Batch, predicted_series: List[Union[LinearRegressionSeries, ARIMASeries]]):
+    def __init__(self, original_data_batch: Batch, predicted_series: List[PredictedSeries]):
         super().__init__(predicted_series, original_data_batch.area, original_data_batch.datatype,
                          original_data_batch.interval)
+
+    # noinspection PyTypeChecker
+    @property
+    def predicted_series_list(self) -> List[PredictedSeries]:
+        return self.dmi_series_list
 
 
 def __convert(data: str):

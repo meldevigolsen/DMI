@@ -1,3 +1,5 @@
+from typing import List
+
 from matplotlib import pyplot
 from pandas.plotting import register_matplotlib_converters
 
@@ -7,32 +9,26 @@ register_matplotlib_converters()
 __color_order = {0: 'g', 1: 'r', 2: 'b'}
 
 
-def __plot_forecast(ax, forecast, color, description):
-    ax.plot(forecast, linestyle='dashed', color=color, label=f'{description} forecast')
-
-
-def __plot_dmi_series(dmi_series: data_instantiator.DMISeries, ax: pyplot.Axes, color: str):
+def __plot_dmi_series(dmi_series: data_instantiator.DMISeries, ax: pyplot.Axes):
     if isinstance(dmi_series, data_instantiator.DataSeries):
         dmi_series: data_instantiator.DataSeries
-        ax.plot(dmi_series.series, linestyle='solid', color=color, label=f'{dmi_series.description}')
-    elif isinstance(dmi_series, data_instantiator.LinearRegressionSeries):
-        dmi_series: data_instantiator.LinearRegressionSeries
-        ax.plot(dmi_series.series, linestyle='dotted', color=color,
-                label=f'{dmi_series.description}\n{dmi_series.linear_regression_description}')
-        ax.plot(dmi_series.forecast, linestyle='dashed', color=color, label=f'{dmi_series.description} forecast')
-    elif isinstance(dmi_series, data_instantiator.ARIMASeries):
-        dmi_series: data_instantiator.ARIMASeries
-        ax.plot(dmi_series.series, linestyle='dotted', color=color,
-                label=f'{dmi_series.description}\n{dmi_series.arima_description}')
-        ax.plot(dmi_series.forecast, linestyle='dashed', color=color, label=f'{dmi_series.description} forecast')
-        intervals = dmi_series.confidence_intervals
-        ax.fill_between()
+        ax.plot(dmi_series.series, linestyle='solid', label=f'{dmi_series.description}')
+    elif isinstance(dmi_series, data_instantiator.PredictedSeries):
+        dmi_series: data_instantiator.PredictedSeries
+        ax.plot(dmi_series.series, linestyle='dotted',
+                label=f'In-sample prognose')
+        ax.plot(dmi_series.forecast, linestyle='dashed', label=f'Prognose frem i tid')
+        if isinstance(dmi_series, data_instantiator.ARIMASeries):
+            dmi_series: data_instantiator.ARIMASeries
+            intervals = dmi_series.confidence_intervals
+            ax.fill_between(intervals.index, intervals['upper_limit'], intervals['lower_limit'], alpha=.5,
+                            label=f'95% sikkerhed')
 
 
 def __plot_batch(batch: data_instantiator.Batch, ax: pyplot.Axes):
     color_code = 0
     for dmi_series in batch.dmi_series_list:
-        __plot_dmi_series(dmi_series, ax, __color_order[color_code])
+        __plot_dmi_series(dmi_series, ax)
         color_code += 1
 
 
@@ -46,6 +42,18 @@ def __setup_ax(ax: pyplot.Axes, batch: data_instantiator.Batch):
         tick.set_rotation_mode('anchor')
     ax.grid()
     ax.legend(bbox_to_anchor=(1, 1))
+
+
+def __setup_multi_ax(ax: pyplot.Axes, dmi_series: data_instantiator.DMISeries):
+    ax.set_title(f'{dmi_series.description}', loc='left')
+    ax.set_ylabel(dmi_series.unit)
+    for tick in ax.get_xticklabels():
+        tick: pyplot.Text
+        tick.set_horizontalalignment('right')
+        tick.set_rotation('45')
+        tick.set_rotation_mode('anchor')
+    ax.grid()
+    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
 
 def __setup_fig(fig: pyplot.Figure, batch: data_instantiator.Batch):
@@ -63,13 +71,22 @@ def plot_batch(batch: data_instantiator.Batch):
     pyplot.show()
 
 
-def plot_batch_with_prediction(first_batch: data_instantiator.DataBatch,
-                               second_batch: data_instantiator.PredictedBatch):
+def plot_prediction(data_batch: data_instantiator.DataBatch,
+                    predicted_batch: data_instantiator.PredictedBatch):
+    number_of_series = len(data_batch.data_series_list)
     fig: pyplot.Figure
-    ax: pyplot.Axes
-    fig, ax = pyplot.subplots()
-    __plot_batch(first_batch, ax)
-    __plot_batch(second_batch, ax)
-    __setup_ax(ax, first_batch)
-    __setup_fig(fig, first_batch)
+    axes: List[pyplot.Axes]
+    fig, axes = pyplot.subplots(number_of_series, sharex='all')
+    if number_of_series == 1:
+        # noinspection PyTypeChecker
+        axes = [axes]
+    for i in range(number_of_series):
+        ax = axes[i]
+        data_series = data_batch.data_series_list[i]
+        predicted_series = predicted_batch.predicted_series_list[i]
+        __plot_dmi_series(data_series, ax)
+        __plot_dmi_series(predicted_series, ax)
+        __setup_multi_ax(ax, predicted_series)
+    fig.suptitle(data_batch.area.name)
+    fig.set_size_inches(10, (3 * number_of_series) if number_of_series > 1 else 5)
     pyplot.show()
