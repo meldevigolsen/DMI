@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from matplotlib import pyplot
 from pandas.plotting import register_matplotlib_converters
@@ -9,14 +9,15 @@ register_matplotlib_converters()
 __color_order = {0: 'g', 1: 'r', 2: 'b'}
 
 
-def __plot_dmi_series(dmi_series: data_instantiator.DMISeries, ax: pyplot.Axes):
+def __plot_dmi_series(dmi_series: data_instantiator.DMISeries, ax: pyplot.Axes, is_test_data=False,
+                      exclude_training=False):
     if isinstance(dmi_series, data_instantiator.DataSeries):
         dmi_series: data_instantiator.DataSeries
-        ax.plot(dmi_series.series, linestyle='solid', label=f'{dmi_series.description}')
+        ax.plot(dmi_series.series, linestyle='solid', label=f'{"Test data" if is_test_data else "Virkelig data"}')
     elif isinstance(dmi_series, data_instantiator.PredictedSeries):
         dmi_series: data_instantiator.PredictedSeries
-        ax.plot(dmi_series.series, linestyle='dotted',
-                label=f'In-sample prognose')
+        if not exclude_training:
+            ax.plot(dmi_series.series, linestyle='dotted', label=f'In-sample prognose')
         ax.plot(dmi_series.forecast, linestyle='dashed', label=f'Prognose frem i tid')
         if isinstance(dmi_series, data_instantiator.ARIMASeries):
             dmi_series: data_instantiator.ARIMASeries
@@ -72,7 +73,8 @@ def plot_batch(batch: data_instantiator.Batch):
 
 
 def plot_prediction(data_batch: data_instantiator.DataBatch,
-                    predicted_batch: data_instantiator.PredictedBatch):
+                    predicted_batch: data_instantiator.PredictedBatch,
+                    test_data_batch: Optional[data_instantiator.DataBatch] = None, exclude_training=False):
     number_of_series = len(data_batch.data_series_list)
     fig: pyplot.Figure
     axes: List[pyplot.Axes]
@@ -82,10 +84,13 @@ def plot_prediction(data_batch: data_instantiator.DataBatch,
         axes = [axes]
     for i in range(number_of_series):
         ax = axes[i]
-        data_series = data_batch.data_series_list[i]
         predicted_series = predicted_batch.predicted_series_list[i]
-        __plot_dmi_series(data_series, ax)
-        __plot_dmi_series(predicted_series, ax)
+        __plot_dmi_series(predicted_series, ax, exclude_training=exclude_training)
+        if not exclude_training:
+            data_series = data_batch.data_series_list[i]
+            __plot_dmi_series(data_series, ax)
+        if test_data_batch is not None:
+            __plot_dmi_series(test_data_batch.data_series_list[i], ax, is_test_data=True)
         __setup_multi_ax(ax, predicted_series)
     fig.suptitle(data_batch.area.name)
     fig.set_size_inches(10, (3 * number_of_series) if number_of_series > 1 else 5)

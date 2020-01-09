@@ -8,8 +8,8 @@ from dmi.processing import forecasting
 country = objects.Countries.DENMARK.value
 area = country.areas[1]
 
-start_date = datetime.datetime.strptime('1/1-2019', '%d/%m-%Y')
-end_date = datetime.datetime.strptime('5/1-2019', '%d/%m-%Y')
+start_date = datetime.datetime(2019, 1, 1)
+end_date = datetime.datetime(2019, 1, 10)
 
 
 def plot_batch():
@@ -74,6 +74,17 @@ def plot_timespan_batch_sarimax():
     plot.plot_prediction(data_batch, prediction)
 
 
+def plot_timespan_batch_sarimax_with_test():
+    predict_length = 24
+    test_start_date = end_date + datetime.timedelta(days=1)
+    test_end_date = end_date + datetime.timedelta(hours=predict_length)
+    datatype = objects.DataTypes.PRECIPITATION
+    data_batch = api.get_data_timespan(area, datatype, objects.Intervals.HOURLY, start_date, end_date)
+    test_data_batch = api.get_data_timespan(area, datatype, objects.Intervals.HOURLY, test_start_date, test_end_date)
+    prediction = forecasting.sarimax_prediction(data_batch, 24, predict_length)
+    plot.plot_prediction(data_batch, prediction, test_data_batch=test_data_batch)
+
+
 # plot_timespan_batch_linreg()
 # plot_timespan_batch_poly_linreg()
-plot_timespan_batch_sarimax()
+plot_timespan_batch_sarimax_with_test()
